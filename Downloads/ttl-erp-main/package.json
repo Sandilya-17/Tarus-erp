@@ -1,0 +1,12 @@
+{
+  "name": "logistics-erp",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "setup": "cd frontend && npm install",
+    "start": "cd frontend && npm start",
+    "build": "cd frontend && npm run build",
+    "dev": "cd frontend && npm start"
+  },
+  "description": "TTL, TAKORADI GHANA ERP — run 'npm run setup' once to install deps, then 'npm start' to launch"
+}
