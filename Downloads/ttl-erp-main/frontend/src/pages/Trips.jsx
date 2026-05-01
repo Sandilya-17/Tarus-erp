@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { tripsAPI, trucksAPI } from '../api/api';
-import { KLTable, PageHeader, Btn, Modal, Field, Input, Select, Textarea, Section, Badge, StatCard, FormGrid, SearchInput, ExcelImportBtn, exportToExcel, downloadExcelTemplate } from '../components/UI';
+import { KLTable, PageHeader, Btn, Modal, Field, Input, Select, Textarea, Section, Badge, StatCard, FormGrid, SearchInput, ExcelImportBtn, exportToExcel, downloadExcelTemplate, exportToPDF } from '../components/UI';
 import toast from 'react-hot-toast';
 import { useAuth } from '../context/AuthContext';
 
@@ -102,7 +102,8 @@ export default function Trips() {
           </select>,
           canEdit && <Btn key="tmpl" variant="secondary" onClick={() => downloadExcelTemplate(EXCEL_COLS, 'trips')}>📄 Template</Btn>,
           canEdit && <ExcelImportBtn key="imp" columns={EXCEL_COLS} onData={handleImport} />,
-          <Btn key="exp" variant="teal" onClick={() => exportToExcel(filtered, cols, 'trips')}>📤 Export</Btn>,
+          <Btn key="exp" variant="teal" onClick={() => exportToExcel(filtered, cols, 'trips')}>📤 Excel</Btn>,
+          <Btn key="pdf" variant="gold" onClick={() => exportToPDF(filtered, cols, 'Trip Register', 'trips')}>📄 PDF</Btn>,
           canEdit && <Btn key="add" variant="success" onClick={() => { setForm({ ...EMPTY, startDate: new Date().toISOString().split('T')[0] }); setModal('add'); }}>+ New Trip</Btn>,
         ]}
       />
@@ -129,7 +130,7 @@ export default function Trips() {
         <Modal title={modal === 'add' ? 'New Trip' : `Edit Trip — ${selected?.waybillNumber}`} onClose={() => setModal(null)} width={760}>
           <form onSubmit={handleSubmit}>
             <FormGrid cols={3}>
-              <Field label="Waybill No." required><Input name="waybillNumber" value={form.lrNumber} onChange={handleChange} required /></Field>
+              <Field label="Waybill No." required><Input name="waybillNumber" value={form.waybillNumber} onChange={handleChange} required /></Field>
               <Field label="Truck Number" required>
                 <Select name="truckNumber" value={form.truckNumber} onChange={handleChange} required>
                   <option value="">Select Truck</option>
@@ -190,6 +191,7 @@ export default function Trips() {
           </div>
           {selected.remarks && <div style={{ marginTop: 16, padding: '10px', background: '#f4f6f9', borderRadius: 4, fontSize: 12 }}><strong>Remarks:</strong> {selected.remarks}</div>}
           <div style={{ marginTop: 16, display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+            <Btn variant="gold" onClick={() => exportToPDF([selected], cols, `Waybill — ${selected.waybillNumber}`, `waybill_${selected.waybillNumber}`)}>📄 Print Waybill</Btn>
             <Badge text={selected.status} type={STATUS_MAP[selected.status] || 'default'} />
           </div>
         </Modal>

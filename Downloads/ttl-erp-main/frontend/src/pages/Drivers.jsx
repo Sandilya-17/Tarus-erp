@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { driversAPI } from '../api/api';
-import { KLTable, PageHeader, Btn, Modal, Field, Input, Select, Textarea, Section, Badge, StatCard, FormGrid, SearchInput, ExcelImportBtn, exportToExcel, downloadExcelTemplate } from '../components/UI';
+import { KLTable, PageHeader, Btn, Modal, Field, Input, Select, Textarea, Section, Badge, StatCard, FormGrid, SearchInput, ExcelImportBtn, exportToExcel, downloadExcelTemplate, exportToPDF } from '../components/UI';
 import toast from 'react-hot-toast';
 import { useAuth } from '../context/AuthContext';
 
@@ -85,7 +85,8 @@ export default function Drivers() {
           <SearchInput key="s" value={search} onChange={setSearch} placeholder="Name/Phone/License/Truck..."/>,
           canManage && <Btn key="tmpl" variant="secondary" onClick={()=>downloadExcelTemplate(EXCEL_COLS,'drivers')}>📄 Template</Btn>,
           canManage && <ExcelImportBtn key="imp" columns={EXCEL_COLS} onData={handleImport}/>,
-          <Btn key="exp" variant="teal" onClick={()=>exportToExcel(filtered,cols,'drivers')}>📤 Export</Btn>,
+          <Btn key="exp" variant="teal" onClick={()=>exportToExcel(filtered,cols,'drivers')}>📤 Excel</Btn>,
+          <Btn key="pdf" variant="gold" onClick={()=>exportToPDF(filtered,cols,'Driver Register','drivers')}>📄 PDF</Btn>,
           canManage && <Btn key="add" variant="success" onClick={()=>{setForm({...EMPTY,dateOfJoining:new Date().toISOString().split('T')[0]});setModal('add');}}>+ Add Driver</Btn>,
         ].filter(Boolean)}
       />
@@ -104,6 +105,36 @@ export default function Drivers() {
           />
         </Section>
       </div>
+
+      {modal==='view' && selected && (
+        <Modal title={`Driver — ${selected.name}`} onClose={()=>setModal(null)} width={580}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px 24px', fontSize: 13 }}>
+            {[
+              ['Full Name', selected.name],
+              ['Phone', selected.phone || '—'],
+              ['Alternate Phone', selected.alternatePhone || '—'],
+              ['License Number', selected.licenseNumber || '—'],
+              ['License Expiry', selected.licenseExpiry || '—'],
+              ['Blood Group', selected.bloodGroup || '—'],
+              ['Date of Joining', selected.dateOfJoining || '—'],
+              ['Salary', selected.salary ? `GH₵${Number(selected.salary).toLocaleString('en-GH')}` : '—'],
+              ['Assigned Truck', selected.assignedTruck || '—'],
+              ['Ghana Card No.', selected.ghanaCardNumber || '—'],
+              ['Status', selected.status],
+              ['Address', selected.address || '—'],
+            ].map(([label, value]) => (
+              <div key={label} style={{ padding: '8px 0', borderBottom: '1px solid #eef2f9' }}>
+                <div style={{ fontSize: 10, fontWeight: 700, color: '#5A6E82', textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 3 }}>{label}</div>
+                <div style={{ fontWeight: 600, color: '#0F1A2A' }}>{value}</div>
+              </div>
+            ))}
+          </div>
+          {selected.remarks && <div style={{ marginTop: 14, padding: '10px 12px', background: '#f5f7fb', borderRadius: 4, fontSize: 12 }}><strong>Remarks:</strong> {selected.remarks}</div>}
+          <div style={{ marginTop: 14, display: 'flex', justifyContent: 'flex-end' }}>
+            <Badge text={selected.status} type={STATUS_COLORS[selected.status] || 'default'} />
+          </div>
+        </Modal>
+      )}
 
       {(modal==='add'||modal==='edit') && (
         <Modal title={modal==='add'?'Add Driver':'Edit Driver'} onClose={()=>setModal(null)} width={700}>

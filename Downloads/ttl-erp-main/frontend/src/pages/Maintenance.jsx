@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { maintenanceAPI, trucksAPI } from '../api/api';
-import { KLTable, PageHeader, Btn, Modal, Field, Input, Select, Textarea, Section, Badge, StatCard, FormGrid, SearchInput, ExcelImportBtn, exportToExcel, downloadExcelTemplate } from '../components/UI';
+import { KLTable, PageHeader, Btn, Modal, Field, Input, Select, Textarea, Section, Badge, StatCard, FormGrid, SearchInput, ExcelImportBtn, exportToExcel, downloadExcelTemplate, exportToPDF } from '../components/UI';
 import toast from 'react-hot-toast';
 import { useAuth } from '../context/AuthContext';
 
@@ -98,7 +98,8 @@ export default function Maintenance() {
           </select>,
           canEdit && <Btn key="tmpl" variant="secondary" onClick={() => downloadExcelTemplate(EXCEL_COLS, 'maintenance')}>📄 Template</Btn>,
           canEdit && <ExcelImportBtn key="imp" columns={EXCEL_COLS} onData={handleImport} />,
-          <Btn key="exp" variant="teal" onClick={() => exportToExcel(filtered, cols, 'maintenance')}>📤 Export</Btn>,
+          <Btn key="exp" variant="teal" onClick={() => exportToExcel(filtered, cols, 'maintenance')}>📤 Excel</Btn>,
+          <Btn key="pdf" variant="gold" onClick={() => exportToPDF(filtered, cols, 'Maintenance Log', 'maintenance')}>📄 PDF</Btn>,
           canEdit && <Btn key="add" variant="success" onClick={() => { setForm({ ...EMPTY, serviceDate: new Date().toISOString().split('T')[0], status: 'COMPLETED' }); setModal('add'); }}>+ Add Record</Btn>,
         ]}
       />
@@ -118,6 +119,38 @@ export default function Maintenance() {
           />
         </Section>
       </div>
+
+      {modal === 'view' && selected && (
+        <Modal title={`Maintenance Record — ${selected.truckNumber}`} onClose={() => setModal(null)} width={600}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px 24px', fontSize: 13 }}>
+            {[
+              ['Truck Number', selected.truckNumber],
+              ['Service Type', selected.serviceType === 'CUSTOM' ? selected.customServiceType : selected.serviceType],
+              ['Status', selected.status],
+              ['Service Date', selected.serviceDate || '—'],
+              ['Odometer at Service', selected.odometerAtService ? `${selected.odometerAtService} km` : '—'],
+              ['Present Odometer', selected.presentOdometer ? `${selected.presentOdometer} km` : '—'],
+              ['Trips Covered', selected.tripsCovered || '—'],
+              ['Cost', selected.cost ? `GH₵${Number(selected.cost).toLocaleString('en-GH')}` : '—'],
+              ['Workshop / Vendor', selected.vendor || '—'],
+              ['Invoice Number', selected.invoiceNumber || '—'],
+              ['Performed By', selected.performedBy || '—'],
+              ['Next Service Date', selected.nextServiceDate || '—'],
+              ['Next Service Odometer', selected.nextServiceOdometer ? `${selected.nextServiceOdometer} km` : '—'],
+            ].map(([label, value]) => (
+              <div key={label} style={{ padding: '8px 0', borderBottom: '1px solid #eef2f9' }}>
+                <div style={{ fontSize: 10, fontWeight: 700, color: '#5A6E82', textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 3 }}>{label}</div>
+                <div style={{ fontWeight: 600, color: '#0F1A2A' }}>{value}</div>
+              </div>
+            ))}
+          </div>
+          {selected.description && <div style={{ marginTop: 14, padding: '10px 12px', background: '#f5f7fb', borderRadius: 4, fontSize: 12 }}><strong>Description:</strong> {selected.description}</div>}
+          {selected.remarks && <div style={{ marginTop: 8, padding: '10px 12px', background: '#f5f7fb', borderRadius: 4, fontSize: 12 }}><strong>Remarks:</strong> {selected.remarks}</div>}
+          <div style={{ marginTop: 14, display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+            <Badge text={selected.status} type={STATUS_MAP[selected.status] || 'default'} />
+          </div>
+        </Modal>
+      )}
 
       {(modal === 'add' || modal === 'edit') && (
         <Modal title={modal === 'add' ? 'Add Maintenance Record' : 'Edit Record'} onClose={() => setModal(null)} width={720}>

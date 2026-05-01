@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { fuelAPI, trucksAPI } from '../api/api';
-import { KLTable, PageHeader, Btn, Modal, Field, Input, Select, Section, Badge, StatCard, FormGrid, SearchInput, Tabs, ExcelImportBtn, exportToExcel, downloadExcelTemplate } from '../components/UI';
+import { KLTable, PageHeader, Btn, Modal, Field, Input, Select, Section, Badge, StatCard, FormGrid, SearchInput, Tabs, ExcelImportBtn, exportToExcel, downloadExcelTemplate, exportToPDF } from '../components/UI';
 import toast from 'react-hot-toast';
 import { useAuth } from '../context/AuthContext';
 
@@ -109,7 +109,8 @@ export default function Fuel() {
         actions={[
           canEdit && <Btn key="tmpl" variant="secondary" onClick={()=>downloadExcelTemplate(EXCEL_COLS,'fuel')}>📄 Template</Btn>,
           canEdit && <ExcelImportBtn key="imp" columns={EXCEL_COLS} onData={handleImport}/>,
-          <Btn key="exp" variant="teal" onClick={()=>exportToExcel(filtered,entryCols,'fuel')}>📤 Export</Btn>,
+          <Btn key="exp" variant="teal" onClick={()=>exportToExcel(filtered,entryCols,'fuel')}>📤 Excel</Btn>,
+          <Btn key="pdf" variant="gold" onClick={()=>exportToPDF(filtered,entryCols,'Fuel Register','fuel')}>📄 PDF</Btn>,
           canEdit && <Btn key="add" variant="success" onClick={()=>{setForm({...EMPTY,date:new Date().toISOString().split('T')[0]});setModal('add');}}>+ Fuel Entry</Btn>,
         ]}
       />
@@ -149,7 +150,7 @@ export default function Fuel() {
         )}
         {tab==='excess' && (
           <Section title={`Monthly Excess Report — ${months[filterMonth-1]} ${filterYear}`}
-            actions={<Btn size="xs" variant="teal" onClick={()=>exportToExcel(excessReport,excessCols,'fuel_excess')}>📤 Export</Btn>}>
+            actions={<div style={{display:'flex',gap:6}}><Btn size="xs" variant="teal" onClick={()=>exportToExcel(excessReport,excessCols,'fuel_excess')}>📤 Excel</Btn><Btn size="xs" variant="gold" onClick={()=>exportToPDF(excessReport,excessCols,'Fuel Excess Report','fuel_excess')}>📄 PDF</Btn></div>}>
             <KLTable columns={excessCols} data={excessReport} loading={loading} emptyMsg="No excess entries for this period"/>
           </Section>
         )}

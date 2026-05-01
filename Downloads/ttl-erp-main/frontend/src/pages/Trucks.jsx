@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { trucksAPI } from '../api/api';
-import { KLTable, PageHeader, Btn, Modal, Field, Input, Select, Textarea, Section, Badge, StatCard, FormGrid, SearchInput, ExcelImportBtn, exportToExcel, downloadExcelTemplate } from '../components/UI';
+import { KLTable, PageHeader, Btn, Modal, Field, Input, Select, Textarea, Section, Badge, StatCard, FormGrid, SearchInput, ExcelImportBtn, exportToExcel, downloadExcelTemplate, exportToPDF } from '../components/UI';
 import toast from 'react-hot-toast';
 import { useAuth } from '../context/AuthContext';
 
@@ -113,7 +113,8 @@ export default function Trucks() {
           <SearchInput key="s" value={search} onChange={setSearch} placeholder="Search truck/make/owner..."/>,
           canManage && <Btn key="tmpl" variant="secondary" onClick={()=>downloadExcelTemplate(EXCEL_COLS,'trucks')}>📄 Template</Btn>,
           canManage && <ExcelImportBtn key="imp" columns={EXCEL_COLS} onData={handleImport}/>,
-          <Btn key="exp" variant="teal" onClick={()=>exportToExcel(filtered,cols,'fleet')}>📤 Export</Btn>,
+          <Btn key="exp" variant="teal" onClick={()=>exportToExcel(filtered,cols,'fleet')}>📤 Excel</Btn>,
+          <Btn key="pdf" variant="gold" onClick={()=>exportToPDF(filtered,cols,'Fleet Master Register','fleet')}>📄 PDF</Btn>,
           canManage && <Btn key="add" variant="success" onClick={()=>{setForm(EMPTY);setModal('add');}}>+ Add Truck</Btn>,
         ].filter(Boolean)}
       />

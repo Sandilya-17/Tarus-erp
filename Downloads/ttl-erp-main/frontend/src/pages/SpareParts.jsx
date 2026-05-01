@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { sparePartsAPI, trucksAPI } from '../api/api';
-import { KLTable, PageHeader, Btn, Modal, Field, Input, Select, Textarea, Section, Badge, StatCard, FormGrid, SearchInput, Tabs, ExcelImportBtn, exportToExcel, downloadExcelTemplate } from '../components/UI';
+import { KLTable, PageHeader, Btn, Modal, Field, Input, Select, Textarea, Section, Badge, StatCard, FormGrid, SearchInput, Tabs, ExcelImportBtn, exportToExcel, downloadExcelTemplate, exportToPDF } from '../components/UI';
 import toast from 'react-hot-toast';
 import { useAuth } from '../context/AuthContext';
 
@@ -180,7 +180,8 @@ export default function SpareParts() {
           </select>,
           canManage && <Btn key="tmpl" variant="secondary" onClick={() => downloadExcelTemplate(EXCEL_COLS, 'spare_parts')}>📄 Template</Btn>,
           canManage && <ExcelImportBtn key="imp" columns={EXCEL_COLS} onData={handleImport} />,
-          <Btn key="exp" variant="teal" onClick={() => exportToExcel(filteredParts, stockCols, 'spare_parts')}>📤 Export</Btn>,
+          <Btn key="exp" variant="teal" onClick={() => exportToExcel(filteredParts, stockCols, 'spare_parts')}>📤 Excel</Btn>,
+          <Btn key="pdf" variant="gold" onClick={() => exportToPDF(filteredParts, stockCols, 'Spare Parts Register', 'spare_parts')}>📄 PDF</Btn>,
           canManage && <Btn key="add" variant="success" onClick={() => { setPartForm(EMPTY_PART); setModal('addPart'); }}>+ Add Part</Btn>,
         ]}
       />
@@ -212,7 +213,8 @@ export default function SpareParts() {
           <Section title="Issue Ledger" actions={
             <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
               {canManage && <Btn size="xs" variant="warning" onClick={() => { setIssueForm({ ...EMPTY_ISSUE, issuedBy: user?.username }); setModal('issue'); }}>📤 Issue Stock</Btn>}
-              <Btn size="xs" variant="teal" onClick={() => exportToExcel(issues, issueCols, 'spare_parts_issues')}>📤 Export</Btn>
+              <Btn size="xs" variant="teal" onClick={() => exportToExcel(issues, issueCols, 'spare_parts_issues')}>📤 Excel</Btn>
+              <Btn size="xs" variant="gold" onClick={() => exportToPDF(issues, issueCols, 'Spare Parts — Issue Ledger', 'spare_parts_issues')}>📄 PDF</Btn>
             </div>
           }>
             <KLTable columns={issueCols} data={issues} loading={loading} onDelete={canManage ? handleIssueCancel : null} />
@@ -222,7 +224,8 @@ export default function SpareParts() {
           <Section title="Purchase Register" actions={
             <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
               {canManage && <Btn size="xs" variant="warning" onClick={() => { setPurchaseForm(EMPTY_PURCHASE); setSelectedPurchase(null); setModal('purchase'); }}>🛒 Record Purchase</Btn>}
-              <Btn size="xs" variant="teal" onClick={() => exportToExcel(purchases, purchaseCols, 'spare_parts_purchases')}>📤 Export</Btn>
+              <Btn size="xs" variant="teal" onClick={() => exportToExcel(purchases, purchaseCols, 'spare_parts_purchases')}>📤 Excel</Btn>
+              <Btn size="xs" variant="gold" onClick={() => exportToPDF(purchases, purchaseCols, 'Spare Parts — Purchase Register', 'spare_parts_purchases')}>📄 PDF</Btn>
             </div>
           }>
             <KLTable columns={purchaseCols} data={purchases} loading={loading}

@@ -358,5 +358,45 @@ export function downloadExcelTemplate(columns, filename = 'template') {
   XLSX.writeFile(wb, `${filename}_template.xlsx`);
 }
 
+export function exportToPDF(data, columns, title = 'Report', filename = 'export') {
+  // Build printable HTML and trigger browser print
+  const date = new Date().toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' });
+  const visibleCols = columns.filter(c => !c.hidden);
+  const rows = data.map(row =>
+    visibleCols.map(c => {
+      const val = row[c.key] ?? '';
+      // Strip React elements — only keep primitive values
+      if (val !== null && typeof val === 'object') return c.exportVal ? c.exportVal(row) : '';
+      return c.exportVal ? c.exportVal(row) : val;
+    })
+  );
+  const html = `<!DOCTYPE html><html><head><title>${title}</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:'Segoe UI',Arial,sans-serif;font-size:11px;color:#111;background:#fff;padding:20px}
+  h1{font-size:16px;font-weight:800;color:#0B1F3A;margin-bottom:2px}
+  .meta{font-size:10px;color:#666;margin-bottom:14px}
+  table{width:100%;border-collapse:collapse;font-size:10.5px}
+  th{background:#0B1F3A;color:#fff;padding:7px 9px;text-align:left;font-size:9.5px;text-transform:uppercase;letter-spacing:.7px;font-weight:700}
+  td{padding:6px 9px;border-bottom:1px solid #e0e6f0;vertical-align:top}
+  tr:nth-child(even) td{background:#F5F8FF}
+  tr:hover td{background:#eef2fb}
+  .footer{margin-top:14px;font-size:9px;color:#888;border-top:1px solid #ddd;padding-top:8px;display:flex;justify-content:space-between}
+  @media print{body{padding:10px} .no-print{display:none}}
+</style></head><body>
+<h1>TTL ERP — ${title}</h1>
+<div class="meta">Generated: ${date} &nbsp;|&nbsp; Total Records: ${data.length}</div>
+<table>
+  <thead><tr>${visibleCols.map(c=>`<th>${c.label}</th>`).join('')}</tr></thead>
+  <tbody>${rows.map(r=>`<tr>${r.map(v=>`<td>${v??''}</td>`).join('')}</tr>`).join('')}</tbody>
+</table>
+<div class="footer"><span>Taurus Trading &amp; Logistics — Confidential</span><span>Page 1</span></div>
+<script>window.onload=()=>{window.print();setTimeout(()=>window.close(),800)}<\/script>
+</body></html>`;
+  const w = window.open('', '_blank', 'width=1000,height=700');
+  w.document.write(html);
+  w.document.close();
+}
+
 export { KLTable as TallyTable };
 export { Btn as FilterSelect };

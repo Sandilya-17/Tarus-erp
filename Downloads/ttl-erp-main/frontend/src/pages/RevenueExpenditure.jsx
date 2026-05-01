@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import * as XLSX from 'xlsx';
 import { revenueAPI, expenditureAPI } from '../api/api';
-import { PageHeader, Btn, Section, StatCard, Tabs, Badge, exportToExcel } from '../components/UI';
+import { PageHeader, Btn, Section, StatCard, Tabs, Badge, exportToExcel, exportToPDF } from '../components/UI';
 import { useAuth } from '../context/AuthContext';
 
 const FONT = "'Inter','DM Sans','Segoe UI',system-ui,sans-serif";
@@ -105,8 +105,8 @@ function RevenueForm({ initial, onSave, onClose }) {
         <FormField label="Party Name">
           <input style={inputStyle} value={form.partyName} onChange={e => set('partyName', e.target.value)} placeholder="Customer / Party" />
         </FormField>
-        <FormField label="LR Number">
-          <input style={inputStyle} value={form.lrNumber} onChange={e => set('lrNumber', e.target.value)} placeholder="LR-XXXX" />
+        <FormField label="Waybill No.">
+          <input style={inputStyle} value={form.lrNumber} onChange={e => set('lrNumber', e.target.value)} placeholder="WB-XXXX" />
         </FormField>
         <FormField label="Reference Number">
           <input style={inputStyle} value={form.referenceNumber} onChange={e => set('referenceNumber', e.target.value)} />
@@ -276,7 +276,7 @@ export default function RevenueExpenditure() {
   const revCols = [
     { key: 'date', label: 'Date' }, { key: 'time', label: 'Time', exportVal: r => extractTime(r) },
     { key: 'category', label: 'Category' }, { key: 'description', label: 'Description' },
-    { key: 'partyName', label: 'Party Name' }, { key: 'lrNumber', label: 'LR Number' },
+    { key: 'partyName', label: 'Party Name' }, { key: 'lrNumber', label: 'Waybill No.' },
     { key: 'referenceNumber', label: 'Reference' },
     { key: 'amount', label: 'Amount', exportVal: r => r.amount || 0 },
     { key: 'paymentMode', label: 'Payment Mode' }, { key: 'receivedBy', label: 'Received By' },
@@ -293,7 +293,7 @@ export default function RevenueExpenditure() {
   ];
 
   const downloadRevTemplate = () => {
-    const headers = ['Date (YYYY-MM-DD)', 'Time (HH:MM)', 'Category', 'Description', 'Party Name', 'LR Number', 'Reference Number', 'Amount', 'Payment Mode', 'Received By', 'Remarks'];
+    const headers = ['Date (YYYY-MM-DD)', 'Time (HH:MM)', 'Category', 'Description', 'Party Name', 'Waybill No.', 'Reference Number', 'Amount', 'Payment Mode', 'Received By', 'Remarks'];
     const sample = ['2026-04-01', '09:30', 'FREIGHT', 'Clinker transport', 'ABC Cement Ltd', 'LR-001', 'REF-001', '45000', 'BANK', 'John', ''];
     const ws = XLSX.utils.aoa_to_sheet([headers, sample]);
     ws['!cols'] = headers.map(h => ({ wch: Math.max(h.length + 2, 14) }));
@@ -431,7 +431,8 @@ export default function RevenueExpenditure() {
             title={`Revenue — ${months[filterMonth - 1]} ${filterYear}`}
             actions={
               <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                <Btn size="xs" variant="teal" onClick={() => exportToExcel(filteredRev, revCols, `revenue_${months[filterMonth-1]}_${filterYear}`)}>📤 Export</Btn>
+                <Btn size="xs" variant="teal" onClick={() => exportToExcel(filteredRev, revCols, `revenue_${months[filterMonth-1]}_${filterYear}`)}>📤 Excel</Btn>
+                <Btn size="xs" variant="gold" onClick={() => exportToPDF(filteredRev, revCols, `Revenue — ${months[filterMonth-1]} ${filterYear}`, `revenue_${months[filterMonth-1]}_${filterYear}`)}>📄 PDF</Btn>
                 {canManage && <Btn size="xs" variant="outline" onClick={downloadRevTemplate}>📋 Template</Btn>}
                 {canManage && <Btn size="xs" variant="outline" onClick={() => revImportRef.current.click()} disabled={importing}>📥 Import</Btn>}
                 {canManage && <Btn size="xs" variant="primary" onClick={() => { setEditRev(null); setShowRevModal(true); }}>+ Add Revenue</Btn>}
@@ -451,7 +452,7 @@ export default function RevenueExpenditure() {
             <div style={{ overflowX: 'auto' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12.5 }}>
                 <thead><tr>
-                  {['#', 'Date', 'Time', 'Category', 'Description', 'Party', 'LR No.', 'Amount', 'Payment', 'Actions'].map(h => (
+                  {['#', 'Date', 'Time', 'Category', 'Description', 'Party', 'Waybill No.', 'Amount', 'Payment', 'Actions'].map(h => (
                     <th key={h} style={th}>{h}</th>
                   ))}
                 </tr></thead>
@@ -502,7 +503,8 @@ export default function RevenueExpenditure() {
             title={`Expenditure — ${months[filterMonth - 1]} ${filterYear}`}
             actions={
               <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                <Btn size="xs" variant="teal" onClick={() => exportToExcel(filteredExp, expCols, `expenditure_${months[filterMonth-1]}_${filterYear}`)}>📤 Export</Btn>
+                <Btn size="xs" variant="teal" onClick={() => exportToExcel(filteredExp, expCols, `expenditure_${months[filterMonth-1]}_${filterYear}`)}>📤 Excel</Btn>
+                <Btn size="xs" variant="gold" onClick={() => exportToPDF(filteredExp, expCols, `Expenditure — ${months[filterMonth-1]} ${filterYear}`, `expenditure_${months[filterMonth-1]}_${filterYear}`)}>📄 PDF</Btn>
                 {canManage && <Btn size="xs" variant="outline" onClick={downloadExpTemplate}>📋 Template</Btn>}
                 {canManage && <Btn size="xs" variant="outline" onClick={() => expImportRef.current.click()} disabled={importing}>📥 Import</Btn>}
                 {canManage && <Btn size="xs" variant="primary" onClick={() => { setEditExp(null); setShowExpModal(true); }}>+ Add Expenditure</Btn>}

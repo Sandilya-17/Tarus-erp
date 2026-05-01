@@ -14,14 +14,24 @@ const C = {
   text: '#0F1A2A', textMuted: '#5A6E82', textLight: '#8A9BAD',
   border: '#D8E2EE', bg: '#F0F4F9', white: '#FFFFFF',
   tableBg: '#F8FAFD', tableHead: '#EEF2F9',
+  vitGold: '#8B5E00', vitGoldBg: '#FEF9EC', vitGoldBorder: '#F3C94B',
 };
 
 function daysLeft(d) { if (!d) return null; return Math.ceil((new Date(d) - new Date()) / 86400000); }
+
+function getCurrentVITQuarter() {
+  const m = new Date().getMonth(); // 0-11
+  if (m <= 2) return { key: 'vitQ1', label: 'Q1 (Jan–Mar)' };
+  if (m <= 5) return { key: 'vitQ2', label: 'Q2 (Apr–Jun)' };
+  if (m <= 8) return { key: 'vitQ3', label: 'Q3 (Jul–Sep)' };
+  return { key: 'vitQ4', label: 'Q4 (Oct–Dec)' };
+}
 
 export default function Dashboard() {
   const { user } = useAuth();
   const [stats, setStats] = useState({});
   const [expiringDocs, setExpiringDocs] = useState([]);
+  const [vitAlerts, setVitAlerts] = useState([]);
   const [recentTrips, setRecentTrips] = useState([]);
   const [lowStockParts, setLowStockParts] = useState([]);
   const [fuelExcess, setFuelExcess] = useState([]);
@@ -38,6 +48,7 @@ export default function Dashboard() {
       fuelAPI.getMonthly(now.getMonth() + 1, now.getFullYear()).catch(() => ({ data: [] })),
     ]).then(([trucks, trips, parts, tyres, drivers, fuelReport]) => {
       const t = trucks.data, tr = trips.data, p = parts.data, ty = tyres.data, d = drivers.data, f = fuelReport.data;
+
       setStats({
         trucks: t.filter(x => x.active !== false).length,
         trips: tr.length,
@@ -48,13 +59,50 @@ export default function Dashboard() {
         activeDrivers: d.filter(x => x.status === 'ACTIVE').length,
         excessFuelTrucks: f.filter(x => x.status === 'EXCESS').length,
       });
+
+      // Document expiry alerts — use correct field names: dvlaExpiry, insuranceExpiry, fitnessExpiry, permitExpiry
       const exp = [];
       t.forEach(truck => {
-        [['RC', truck.rcExpiry], ['Insurance', truck.insuranceExpiry], ['Fitness', truck.fitnessExpiry], ['Permit', truck.permitExpiry]].forEach(([type, date]) => {
-          if (date) { const days = daysLeft(date); if (days !== null && days <= 30) exp.push({ truck: truck.truckNumber, type, date, days }); }
+        [
+          ['DVLA', truck.dvlaExpiry],
+          ['Insurance', truck.insuranceExpiry],
+          ['Fitness', truck.fitnessExpiry],
+          ['Permit', truck.permitExpiry],
+        ].forEach(([type, date]) => {
+          if (date) {
+            const days = daysLeft(date);
+            if (days !== null && days <= 30) exp.push({ truck: truck.truckNumber, type, date, days });
+          }
         });
       });
       setExpiringDocs(exp.sort((a, b) => a.days - b.days).slice(0, 8));
+
+      // VIT alerts — current quarter + any overdue quarters
+      const currentQ = getCurrentVITQuarter();
+      const allQuarters = [
+        { key: 'vitQ1', label: 'Q1 (Jan–Mar)', deadline: `${now.getFullYear()}-03-31` },
+        { key: 'vitQ2', label: 'Q2 (Apr–Jun)', deadline: `${now.getFullYear()}-06-30` },
+        { key: 'vitQ3', label: 'Q3 (Jul–Sep)', deadline: `${now.getFullYear()}-09-30` },
+        { key: 'vitQ4', label: 'Q4 (Oct–Dec)', deadline: `${now.getFullYear()}-12-31` },
+      ];
+      const vitRows = [];
+      t.forEach(truck => {
+        allQuarters.forEach(q => {
+          const paid = truck[q.key];
+          const deadlineDays = daysLeft(q.deadline);
+          // Show: unpaid for current/past quarters, or paid but expiring soon
+          if (!paid && deadlineDays !== null && deadlineDays <= 60) {
+            vitRows.push({ truck: truck.truckNumber, quarter: q.label, paid: null, deadline: q.deadline, days: deadlineDays, status: deadlineDays < 0 ? 'OVERDUE' : 'DUE' });
+          } else if (paid) {
+            const paidDays = daysLeft(paid);
+            if (paidDays !== null && paidDays <= 30) {
+              vitRows.push({ truck: truck.truckNumber, quarter: q.label, paid, deadline: q.deadline, days: paidDays, status: paidDays < 0 ? 'EXPIRED' : 'EXPIRING' });
+            }
+          }
+        });
+      });
+      setVitAlerts(vitRows.sort((a, b) => a.days - b.days).slice(0, 8));
+
       setRecentTrips(tr.sort((a, b) => new Date(b.startDate || 0) - new Date(a.startDate || 0)).slice(0, 6));
       setLowStockParts(p.filter(x => (x.currentStock || 0) <= (x.reorderLevel || 0)).slice(0, 6));
       setFuelExcess(f.filter(x => x.status === 'EXCESS').slice(0, 5));
@@ -65,6 +113,8 @@ export default function Dashboard() {
 
   const th = { padding: '8px 12px', background: C.tableHead, color: C.primary, fontSize: 9.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.9, textAlign: 'left', borderBottom: `2px solid ${C.border}`, fontFamily: FONT, whiteSpace: 'nowrap' };
   const td = { padding: '8px 12px', fontSize: 12, color: C.text, fontFamily: FONT, borderBottom: `1px solid ${C.border}` };
+  const vitTh = { ...th, background: '#FDF3DC', color: C.vitGold };
+  const vitTd = { ...td, background: '#FFFDF7' };
 
   return (
     <div style={{ fontFamily: FONT }}>
@@ -99,10 +149,52 @@ export default function Dashboard() {
           <StatCard label="Total Trips" value={loading ? '—' : stats.trips} icon="📋" color="#5B3A8C" sub="All time records" />
         </div>
 
+        {/* VIT Alert Banner — shown only when there are alerts */}
+        {!loading && vitAlerts.length > 0 && (
+          <div style={{ background: C.vitGoldBg, border: `1.5px solid ${C.vitGoldBorder}`, borderRadius: 8, padding: '14px 18px', marginBottom: 20 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
+              <span style={{ fontSize: 18 }}>🏷️</span>
+              <div>
+                <div style={{ fontWeight: 800, fontSize: 13, color: C.vitGold, textTransform: 'uppercase', letterSpacing: 0.8 }}>VIT — Vehicle Income Tax Alerts</div>
+                <div style={{ fontSize: 11, color: '#9A6F00', marginTop: 1 }}>{vitAlerts.length} truck{vitAlerts.length > 1 ? 's' : ''} require attention</div>
+              </div>
+            </div>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+              <thead>
+                <tr>
+                  {['Truck', 'Quarter', 'Status', 'Deadline', 'Days'].map(h => <th key={h} style={vitTh}>{h}</th>)}
+                </tr>
+              </thead>
+              <tbody>
+                {vitAlerts.map((v, i) => (
+                  <tr key={i}>
+                    <td style={{ ...vitTd, fontWeight: 700, color: C.primary }}>{v.truck}</td>
+                    <td style={vitTd}>{v.quarter}</td>
+                    <td style={vitTd}>
+                      <span style={{
+                        padding: '2px 8px', borderRadius: 10, fontSize: 10, fontWeight: 700,
+                        background: v.status === 'OVERDUE' || v.status === 'EXPIRED' ? '#FEE8E8' : '#FEF3C7',
+                        color: v.status === 'OVERDUE' || v.status === 'EXPIRED' ? '#9B1C1C' : '#B45309',
+                        textTransform: 'uppercase', letterSpacing: 0.5,
+                      }}>{v.status}</span>
+                    </td>
+                    <td style={{ ...vitTd, fontFamily: "'JetBrains Mono','Consolas',monospace", fontSize: 11 }}>{v.deadline}</td>
+                    <td style={{ ...vitTd, fontWeight: 700, color: v.days < 0 ? C.danger : v.days <= 7 ? '#e65100' : C.vitGold }}>
+                      {v.days < 0 ? `${Math.abs(v.days)}d overdue` : `${v.days}d left`}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
           {/* Expiring Documents */}
           <Section title="⚠ Document Expiry Alerts — Next 30 Days">
-            {expiringDocs.length === 0 ? (
+            {loading ? (
+              <div style={{ textAlign: 'center', padding: '24px 0', color: C.textMuted, fontSize: 13 }}>Loading…</div>
+            ) : expiringDocs.length === 0 ? (
               <div style={{ textAlign: 'center', padding: '24px 0', color: C.success, fontSize: 13 }}>
                 <div style={{ fontSize: 24, marginBottom: 8 }}>✓</div>
                 All documents are valid
@@ -124,18 +216,20 @@ export default function Dashboard() {
             )}
           </Section>
 
-          {/* Recent Trips */}
+          {/* Recent Trips — waybillNumber fix */}
           <Section title="📋 Recent Trips">
-            {recentTrips.length === 0 ? (
+            {loading ? (
+              <div style={{ textAlign: 'center', padding: '24px 0', color: C.textMuted, fontSize: 13 }}>Loading…</div>
+            ) : recentTrips.length === 0 ? (
               <div style={{ textAlign: 'center', padding: '24px 0', color: C.textMuted, fontSize: 13 }}>No trips found</div>
             ) : (
               <table style={{ width: '100%', fontSize: 12, borderCollapse: 'collapse' }}>
                 <thead><tr>
-                  {['LR No.', 'Truck', 'Route', 'Status'].map(h => <th key={h} style={th}>{h}</th>)}
+                  {['Waybill No.', 'Truck', 'Route', 'Status'].map(h => <th key={h} style={th}>{h}</th>)}
                 </tr></thead>
                 <tbody>{recentTrips.map((t, i) => (
                   <tr key={i}>
-                    <td style={{ ...td, fontWeight: 700, color: C.primary }}>{t.lrNumber}</td>
+                    <td style={{ ...td, fontWeight: 700, color: C.primary }}>{t.waybillNumber || t.lrNumber || '—'}</td>
                     <td style={td}>{t.truckNumber}</td>
                     <td style={{ ...td, fontSize: 11, color: C.textMuted }}>{t.from} → {t.to}</td>
                     <td style={td}><Badge text={t.status} type={STATUS_MAP[t.status] || 'default'} /></td>
@@ -147,7 +241,9 @@ export default function Dashboard() {
 
           {/* Low Stock Parts */}
           <Section title="🔧 Low Stock Parts">
-            {lowStockParts.length === 0 ? (
+            {loading ? (
+              <div style={{ textAlign: 'center', padding: '24px 0', color: C.textMuted, fontSize: 13 }}>Loading…</div>
+            ) : lowStockParts.length === 0 ? (
               <div style={{ textAlign: 'center', padding: '24px 0', color: C.success, fontSize: 13 }}>
                 <div style={{ fontSize: 24, marginBottom: 8 }}>✓</div>
                 All parts adequately stocked
@@ -171,7 +267,9 @@ export default function Dashboard() {
 
           {/* Fuel Excess */}
           <Section title="⛽ Fuel Excess This Month">
-            {fuelExcess.length === 0 ? (
+            {loading ? (
+              <div style={{ textAlign: 'center', padding: '24px 0', color: C.textMuted, fontSize: 13 }}>Loading…</div>
+            ) : fuelExcess.length === 0 ? (
               <div style={{ textAlign: 'center', padding: '24px 0', color: C.success, fontSize: 13 }}>
                 <div style={{ fontSize: 24, marginBottom: 8 }}>✓</div>
                 No excess fuel this month
