@@ -1,8 +1,0 @@
-[phases.install]
-cmds = ["npm install"]
-
-[phases.build]
-cmds = ["REACT_APP_API_URL=https://tarus-erp-production.up.railway.app/api npm run build"]
-
-[start]
-cmd = "npx serve -s build -p ${PORT:-3000}"
